@@ -107,7 +107,7 @@ def test_orient_by_qr():
 
 def test_cleaner_1():
     cleaner = Cleaner(get_fields_info())
-    assert cleaner.clean_segments([{"name": "Medication Name", "value": "simv+"}], "aaa", "1") == {"name": "Medication Name", "value": "simv+"}
+    assert cleaner.clean_segments([{"name": "Medication Name", "value": "simv+"}], "aaa", "1") == [{"name": "Medication Name", "value": "simv+"}]
 
 
 def test_cleaner_ibp():
