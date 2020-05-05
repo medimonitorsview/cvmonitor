@@ -425,7 +425,7 @@ def send_picture(url: str, device: Device):
         headers["X-TIMESTEMP"] = timestamp
         monitor_data = {
             "monitorId": str(device.monitor_id),
-            "imageId": device.monitor_id,
+            "imageId": str(device.index),
             "timestamp": str(datetime.datetime.utcnow().isoformat()),
             "segments": copy.deepcopy(device.segments),
         }
@@ -511,7 +511,7 @@ def generate_data(url):
         send_all_pictures(url, active_devices)
         for d in active_devices:
             d.change_values()
-        time.sleep(1)
+        time.sleep(0.01)
 
 
 def simulate_monitor(url):
