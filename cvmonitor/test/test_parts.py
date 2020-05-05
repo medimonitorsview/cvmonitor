@@ -107,7 +107,25 @@ def test_orient_by_qr():
 
 def test_cleaner_1():
     cleaner = Cleaner(get_fields_info())
-    cleaner.clean_segments([{"name": "Medication Name", "value": "simv+"}], "aaa", "1") == {"name": "Medication Name", "value": "simv+"}
+    assert cleaner.clean_segments([{"name": "Medication Name", "value": "simv+"}], "aaa", "1") == {"name": "Medication Name", "value": "simv+"}
+
+
+def test_cleaner_ibp():
+    cleaner = Cleaner(get_fields_info())
+    res = cleaner.clean_segments([{"name": "IBP", "value": "120/80"}], "aaa", "1")
+    assert res == [{"name": "IBP-Systole", "value": "120"}, {"name": "IBP-Diastole", "value": "80"}]
+
+    res = cleaner.clean_segments([{"name": "IBP", "value": "120/80"}, {"name": "IBP", "value": None}], "aaa", "1")
+    assert res == [{"name": "IBP-Systole", "value": "120"}, {"name": "IBP-Diastole", "value": "80"}]
+
+
+def test_cleaner_nibp():
+    cleaner = Cleaner(get_fields_info())
+    res = cleaner.clean_segments([{"name": "NIBP", "value": "120/80"}], "aaa", "1")
+    assert res == [{"name": "NIBP-Systole", "value": "120"}, {"name": "NIBP-Diastole", "value": "80"}]
+
+    res = cleaner.clean_segments([{"name": "NIBP", "value": "120/80"}, {"name": "NIBP", "value": None}], "aaa", "1")
+    assert res == [{"name": "NIBP-Systole", "value": "120"}, {"name": "NIBP-Diastole", "value": "80"}]
 
 
 def test_get_clean_value_int():

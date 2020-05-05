@@ -191,29 +191,33 @@ class Cleaner:
     def sysdis(self, segments_dict):
         if "IBP" in segments_dict and "IBP-Systole" not in segments_dict and "IBP-Diastole" not in segments_dict:
             values = segments_dict["IBP"]["value"]
-            if all(['/' in v for v in values]):
-                systole = copy.deepcopy(segments_dict["IBP"])
-                systole["value"] = [x.split("/")[0] for x in values]
-                diastole = copy.deepcopy(segments_dict["IBP"])
-                diastole["value"] = [x.split("/")[-1] for x in values]
-                systole["name"] = "IBP-Systole"
-                diastole["name"] = "IBP-Diastole"
-                segments_dict["IBP-Systole"] = systole
-                segments_dict["IBP-Diastole"] = diastole
-                del segments_dict["IBP"]
+            if values and isinstance(values, list):
+                values = [v for v in values if v and isinstance(v, str)]
+                if all(['/' in v for v in values]):
+                    systole = copy.deepcopy(segments_dict["IBP"])
+                    systole["value"] = [x.split("/")[0] for x in values]
+                    diastole = copy.deepcopy(segments_dict["IBP"])
+                    diastole["value"] = [x.split("/")[-1] for x in values]
+                    systole["name"] = "IBP-Systole"
+                    diastole["name"] = "IBP-Diastole"
+                    segments_dict["IBP-Systole"] = systole
+                    segments_dict["IBP-Diastole"] = diastole
+                    del segments_dict["IBP"]
 
         if "NIBP" in segments_dict and "NIBP-Systole" not in segments_dict and "NIBP-Diastole" not in segments_dict:
             values = segments_dict["NIBP"]["value"]
-            if all(['/' in v for v in values]):
-                systole = copy.deepcopy(segments_dict["NIBP"])
-                systole["value"] = [x.split("/")[0] for x in values]
-                diastole = copy.deepcopy(segments_dict["NIBP"])
-                diastole["value"] = [x.split("/")[-1] for x in values]
-                systole["name"] = "NIBP-Systole"
-                diastole["name"] = "NIBP-Diastole"
-                segments_dict["NIBP-Systole"] = systole
-                segments_dict["NIBP-Diastole"] = diastole
-                del segments_dict["NIBP"]
+            if values and isinstance(values, list):
+                values = [v for v in values if v and isinstance(v, str)]
+                if all(['/' in v for v in values]):
+                    systole = copy.deepcopy(segments_dict["NIBP"])
+                    systole["value"] = [x.split("/")[0] for x in values]
+                    diastole = copy.deepcopy(segments_dict["NIBP"])
+                    diastole["value"] = [x.split("/")[-1] for x in values]
+                    systole["name"] = "NIBP-Systole"
+                    diastole["name"] = "NIBP-Diastole"
+                    segments_dict["NIBP-Systole"] = systole
+                    segments_dict["NIBP-Diastole"] = diastole
+                    del segments_dict["NIBP"]
 
     def clean_segments(self, segments, monitorId, imageId):
         if monitorId is None:
