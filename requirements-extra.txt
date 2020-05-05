@@ -1,0 +1,9 @@
+plotly
+jupyter
+ipython
+pandas
+matplotlib
+python-opencv
+pandas
+tqdm
+sh

@@ -1,0 +1,7 @@
+venv/
+**/*.pyc
+**/__pycache__/
+**/*.egg-info/
+.vscode/
+__pycache__/**
+id_rsa*
