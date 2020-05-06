@@ -1,6 +1,7 @@
 import random
 import re
 import copy
+import traceback
 from collections import Counter, defaultdict
 from cvmonitor.aug_clean import MonitorValues
 from .utils import is_int
@@ -22,6 +23,7 @@ def get_fields_info(device_types=['respirator', 'ivac', 'monitor']):
         'Total Rate': {'max_len': 2, 'min': 10, 'max': 40, 'dtype': int, "min_range": 0, "max_range": 99},
         'Peep': {'max_len': 2, 'min': None, 'max': None, 'dtype': int, "min_range": 0, "max_range": 99},
         'Ppeak': {'max_len': 2, 'min': None, 'max': 40, 'dtype': int},
+        'MV': {'max_len': 3, 'min': None, 'max': 999, 'dtype': int, "min_range": 0, "max_range": 1000},
         'FIO2': {'max_len': 3, 'min': None, 'max': None, 'dtype': int},
         # FIXME: assume that operator selects only X.X part, without the digit 1
         'I:E Ratio': {'max_len': 2, 'min': None, 'max': None, 'dtype': float, 'num_digits_after_point': 1},
@@ -115,6 +117,7 @@ class PostProcessor():
     """
     Cleaning ocr data
     """
+
     def __init__(self, devices, average_length=3):
         self.monitors = {}
         self.devices = devices
@@ -219,34 +222,60 @@ class Cleaner:
                     segments_dict["NIBP-Diastole"] = diastole
                     del segments_dict["NIBP"]
 
-    def clean_segments(self, segments, monitorId, imageId):
-        if monitorId is None:
-            monitorId = "unkown monitor"
-        mv: MonitorValues = self.monitors[monitorId]
+    def basic_cleanup(self, segments):
         segments_dict = {}
         for segment in segments:
-            name = segment.get("name")
-            if name is None or not name:
-                continue
-            if name not in segments_dict:
-                segments_dict[name] = copy.deepcopy(segment)
-                segments_dict[name]["value"] = list()
-            cleaned_field = segment.get("value")
-            if name in self.sensors and segment.get("value"):
-                cleaned_field = cleanup_field(self.sensors[name], segment.get("value"))
-            segments_dict[name]["value"].append(cleaned_field)
-            if segment.get("level") == "crop":
-                segments_dict[name].update(dict(top=segment["top"], left=segment["left"], bottom=segment["bottom"], right=segment["right"]))
+            try:
+                name = segment.get("name")
+                if name is None or not name:
+                    continue
+                if name not in segments_dict:
+                    segments_dict[name] = copy.deepcopy(segment)
+                    segments_dict[name]["value"] = list()
+                cleaned_field = segment.get("value")
+                if name in self.sensors and segment.get("value"):
+                    cleaned_field = cleanup_field(self.sensors[name], segment.get("value"))
+                segments_dict[name]["value"].append(cleaned_field)
 
-        # Split systole-diastole
-        self.sysdis(segments_dict)
-        for name, aug_dict in segments_dict.items():
-            if name in self.sensors and self.sensors[name].get("dtype") in [float, int]:
-                res = mv.get_latest_valid_value(aug_dict)
-                if res:
-                    segments_dict[name]["value"] = res
-            if isinstance(segments_dict[name]["value"], list):
-                segments_dict[name]["value"] = Counter(segments_dict[name]["value"]).most_common(1)[0][0]
-            if "clean_value" in segments_dict[name]:
-                segments_dict[name].pop("clean_value")
-        return [v for k, v in segments_dict.items()]
+                # Get the location of the merged segment from the crop
+                if segment.get("level") == "crop":
+                    segments_dict[name].update(dict(top=segment["top"], left=segment["left"], bottom=segment["bottom"], right=segment["right"]))
+            except Exception:
+                traceback.print_exc()
+                continue
+        return segments_dict
+
+    def clean_segments(self, segments, monitorId, imageId):
+        try:
+            segments_dict = self.basic_cleanup(segments)
+
+            # Split systole-diastole
+            self.sysdis(segments_dict)
+
+            if monitorId is None:
+                monitorId = "unkown monitor"
+            mv: MonitorValues = self.monitors[monitorId]
+
+            for name, aug_dict in segments_dict.items():
+                try:
+                    if name in self.sensors and self.sensors[name].get("dtype") in [float, int]:
+                        res = mv.get_latest_valid_value(aug_dict)
+                        if res:
+                            segments_dict[name]["value"] = res
+                    if isinstance(segments_dict[name]["value"], list):
+                        if not segments_dict[name]["value"]:
+                            segments_dict[name]["value"] = None
+                        else:
+                            try:
+                                segments_dict[name]["value"] = Counter(segments_dict[name]["value"]).most_common(1)[0][0]
+                            except Exception:
+                                segments_dict[name]["value"] = segments_dict[name]["value"][0] if len(segments_dict[name]["value"]) > 0 else None
+                    if "clean_value" in segments_dict[name]:
+                        segments_dict[name].pop("clean_value")
+                except Exception:
+                    traceback.print_exc()
+                    continue
+            return [v for k, v in segments_dict.items()]
+        except Exception:
+            traceback.print_exc()
+            return segments
